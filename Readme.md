@@ -1,44 +1,202 @@
-# 세미 프로젝트
+# PARA프로젝트에서 내가 했던 일
 
-- [기획서](기획서.md)
-- [회고](회고.md)
+### reviews/views.py
+
+##### CRUD
+
+- 배웠던 내용을 바탕으로 구성했기 때문에, 자세한 코드는 생략
+
+##### TAG
+
+```python
+class TagCloudTV(TemplateView):
+    template_name = "taggit/taggit_cloud.html"
+```
+
+```python
+class TaggedObjectLV(ListView):
+    template_name = "taggit/taggit_post_list.html"
+    model = Review
+
+    def get_queryset(self):
+        response = Review.objects.filter(tags__name=self.kwargs.get("tag")).select_related(
+            "product"
+        )
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["tagname"] = self.kwargs["tag"]
+        return context
+```
+
+- 원래 하려던 게 review_app가 아닌 product_app에 있는 이름을 가져오는 방법이었는데,
+- select_related( "product") 결국 모든 고민이 이 한줄 추가로 내가 원하던 기능이 추가됐다
+- 이걸 조교님에게 물어서 알게 된 부분이 불만족스러움
+
+### reviews/templates/taggit(TAG)
+
+##### taggit_clould.html
+
+```html
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+{% load static %}
+
+{% block body %}
+  <h5 class="font-space fw-bolder">
+    <i class="bi bi-tag"></i>&nbsp;&nbsp;태그모음</h5>
+  <br>
+  <div>
+    {% load taggit_templatetags2_tags %}
+    {% get_tagcloud as tags %}
+    <div class="d-flex flex-wrap justify-content-evenly align-items-center">
+      {% for tag in tags %}
+        <h4 class="align-middle my-3 me-5">
+          <span class="tag-{{tag.weight|floatformat:0}}">
+            <a class="button-74 text-decoration-none d-flex flex-column rounded-pill position-relative mt-1" href="{% url 'reviews:tagged_object_list' tag.name %}">#{{tag.name}}
+              <!-- HTML !-->
+              <span class="mt-2 text-center font-space position-absolute top-0 start-100 translate-middle rounded-5 badge bg-primary" style="font-size: 13px;">{{tag.num_times}}</span>
+            </a>
+          </span>
+        </h4>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock body %}
+```
+
+##### taggit_post_list.html
+
+```html
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+{% load static %}
+
+{% block body %}
+
+<div class="d-flex justify-content-between align-items-center">
+  <h1><span class="badge rounded-pill button-74">#{{ tagname }}</span></h1>
+  <div class="text-end">
+    <h5 class="mb-0"><a style="text-decoration: none;" class="font-space" href="{% url 'reviews:tag_cloud' %}"><i class="fa-solid fa-right-from-bracket"></i>&nbsp;&nbsp;태그 모음</a></h5>
+  </div>
+</div>
+
+<br>
+<div class="accordion" id="accordionPanelsStayOpenExample">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="panelsStayOpen-headingOne">
+      <button class="accordion-button font-space" type="button" data-bs-toggle="collapse"
+        data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
+        Review List
+      </button>
+    </h2>
+    <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show"
+      aria-labelledby="panelsStayOpen-headingOne">
+      <div class="accordion-body">
+        {% for review in object_list %}
+        <div class="card-header my-2">
+          {% if review.user.profile_image %}
+          <img src="{{ review.user.profile_image.url }}" alt="" style="width:32px; height:32px; border-radius: 50%;">
+          &nbsp;
+          <span class="font-space">
+            <a href="{% url 'accounts:detail' review.user.pk %}" class="text-decoration-none text-dark">
+              {{ review.user.username }}
+            </a>
+          </span>
+          {% else %}
+          <img src="{% static 'images/profiledetail.png' %}" alt="" style="width:32px; height:32px;">
+          <span class="font-space"> 
+            <a href="{% url 'accounts:detail' review.user.pk %}" class="text-decoration-none text-dark">
+              {{ review.user.username }}
+            </a>
+          </span>
+          {% endif %}
+        </div>
+        <div class="py-3 text-truncate">
+          <p class="mb-0 text-truncate">
+            <a class="align-top text-decoration-none text-dark text-truncate" href="{% url 'reviews:review_detail' review.product_id review.id  %}">
+              {{ review.content }}
+            </a>
+          </p>
+        </div>
+        <div class="py-3">
+          <p class="mb-0">
+            <a class="align-top text-decoration-none text-primary opacity-75" href="{% url 'products:detail' review.product_id  %}">
+              <i class="bi bi-bag-check"></i>&nbsp;{{ review.product.name }}
+            </a>
+          </p>
+        </div>
+        <div class="">
+          {% if review.grade == "1" %}
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          {% elif review.grade == "2" %}
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          {% elif review.grade == "3" %}
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          {% elif review.grade == "4" %}
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-regular fa-star text-warning"></i>
+          {% elif review.grade == "5" %}
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          <i class="fa-solid fa-star text-warning"></i>
+          {% endif %}
+        </div>
+        <hr>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock body %}
+```
 
 
 
-## Contributors
-
-<a href="https://github.com/sunbongE/PARA/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=sunbongE/PARA" />
-</a>
 
 
+### TAG - html
 
+![image-20221123102457774](Readme.assets/image-20221123102457774.png)
 
-
-## 후기
-
-- 김태현
-  기획 단계를 아주 아주 꼼꼼히 해야 한다고 느꼈습니다.
-  새로운 기능을 익힐 때 제일 빠른 건 공식 문서라고 또 한 번 배웠습니다.
-  열정 있는 팀원분들 덕분에 잘 마무리 할 수 있었어요. 8조 모두 감사해요 !!
-
-
-- 박태호: 지난 프로젝트 회고하며 해보고 싶은 기능들이 많았는데 이번에 크롤링, 대댓글, 소셜로그인을 구현해봐서 좋은 경험이었습니다. 댓글, 대댓글 비동기 처리를 진행하면서 React으로 하면 쉽게 구현이 된다는 정보를 들어서 학습하고 싶어졌다. 구현은 했지만 깔끔하지 못한 코드를 보면서 다음 구현에는 더 깔끔하게 해야겠다는 생각을 했다. 팀장으로 역할을 완벽히 소화하진 못했지만 팀원 분들이 다들 책임감을 가지고 맡은 역할을 잘 해주셔서 훈훈한 프로젝트이었습니다. 고생하셨습니다!  
+- 리뷰 디테일 페이지에서 TAG,TAG모아보기 기능
 
 
 
-- 손희준: 해시태그에 대한 이해가 늘었다. 해시태그를구성할 때, [.select_related("product")]로 
-연관된 DB를 함께 불러오는 게 떠오르지도 않았고 DB를 구성하는데 시간을 많이 잡아 먹었다 
 
 
-- 류진숙
-  : 자라 클론코딩을 해서 프론트는 제법 수월하게 진행할 수 있었던 것 같다. 프론트를 하다보니 추가 기능 구현에 참여하지 못한건 아쉽지만, 프론트를 만지면서 백을 수정해야 할 상황도 있었고, 다른 팀원들의 디버깅을 도와주면서 실력 향상이 될 수 있었던 프로젝트였다. 팀원분들도 기능 구현을 엄청 빠르게 하셔서 이번 프로젝트는 비교적 여유롭게 진행할 수 있었던 것 같다. 다들 최고최고
+![image-20221123102551731](Readme.assets/image-20221123102551731.png)
+
+- TAG 모아보기 - 사용했던 모든 테그를 한눈에 확인
 
 
 
-- 황여원
-  첫번재 프로젝트때 해보지 못했던 해시태그, 소셜로그인 등을 할 수 있어서 좋았고 매일 프로젝트를 끝낸 후 자기가 하루동안 구현한 기능을 설명하는 시간을 가져서 다른 팀원들이 진행했던 지도 Api, 크롤링등의 기능을 배울 수 있어서 좋았습니다.
 
 
-- 송희수: 쿠키로 하는 장바구니 구현이 쉽지않아 오래 걸려서 해보고 싶은 기능들을 못해본거 같다. 또한 비동기처리를 처음 해봤는데 조금 어려웠지만 해볼만한거 같다. 다음에는 해보고 싶은 기능들을 꼭 해보고싶다.
-다들 열정적으로 해주셔서 감사합니다. 좋은 인연은 만든거 같네요. 다들 고생하셨습니다.
+
+
+![image-20221123102623821](Readme.assets/image-20221123102623821.png)
+
+- TAG를 선택하면 TAG가 속해있는 리뷰를 한번에 볼수 있게 기능
+
+- 제품 명 나오게 기능
+
